@@ -14,7 +14,7 @@ import plotly.graph_objects as go
 app = Flask(__name__)
 
 # Load the pre-trained model
-model = load_model('best_model_MSFT.h5')
+model = load_model('best_model.h5')
 
 # Prepare the scaler used for scaling the data
 scaler = MinMaxScaler(feature_range=(0, 1))
@@ -61,23 +61,32 @@ def predict_stock_price(ticker):
     
     return predicted_price[0][0], stock_data
 
-def get_investment_recommendation(predicted_price, current_price, risk_tolerance):
+def get_investment_recommendation(predicted_price, current_price, risk_tolerance,investment_goal):
     # Simple rule-based recommendation system
-    if risk_tolerance >= 7:  # High risk tolerance
+    if investment_goal == "Short-term":
+        # For short-term goals, focus more on immediate trends
         if predicted_price > current_price:
-            return "Buy (High Risk Tolerance)"
+            if risk_tolerance >= 7:
+                return "Buy quickly, but monitor closely (High Risk Tolerance)"
+            elif risk_tolerance <= 3:
+                return "Hold for now, avoid aggressive actions (Low Risk Tolerance)"
+            else:
+                return "Buy cautiously (Moderate Risk Tolerance)"
         else:
-            return "Sell (High Risk Tolerance)"
-    elif risk_tolerance <= 3:  # Low risk tolerance
+            return "Sell quickly to minimize losses (Short-term Goal)"
+    elif investment_goal == "Long-term":
+        # For long-term goals, assume market recovery and stability
         if predicted_price > current_price:
-            return "Hold (Low Risk Tolerance)"
+            if risk_tolerance >= 7:
+                return "Buy and hold for long-term growth (High Risk Tolerance)"
+            elif risk_tolerance <= 3:
+                return "Hold for now, consider stability (Low Risk Tolerance)"
+            else:
+                return "Buy conservatively for gradual growth (Moderate Risk Tolerance)"
         else:
-            return "Sell (Low Risk Tolerance)"
+            return "Hold, markets often recover over time (Long-term Goal)"
     else:
-        if predicted_price > current_price:
-            return "Buy (Moderate Risk Tolerance)"
-        else:
-            return "Hold (Moderate Risk Tolerance)"
+        return "Invalid investment goal"
         
 def generate_stock_plot(ticker, stock_data, predicted_price, current_price, lower_bound, upper_bound):
     plt.figure(figsize=(11, 9))
@@ -142,7 +151,7 @@ def submit():
     upper_bound = predicted_price + margin
 
     # Get recommendation based on risk tolerance
-    recommendation = get_investment_recommendation(predicted_price, current_price, risk_tolerance)
+    recommendation = get_investment_recommendation(predicted_price, current_price, risk_tolerance,investment_goal)
 
     # Create plot as before
     img_base64 = generate_stock_plot(ticker, stock_data, predicted_price, current_price, lower_bound, upper_bound)
